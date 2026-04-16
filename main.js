@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
 app.disableHardwareAcceleration();
 
@@ -20,6 +20,48 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+
+
+    // IPC Handlers
+    ipcMain.handle('save-note', async (event, text) => {
+        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
+        fs.writeFileSync(filePath, text, 'utf-8');
+        return { success: true };
+    });
+
+    ipcMain.handle('load-note', async () => {
+        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
+        if (fs.existsSync(filePath)) {
+            return fs.readFileSync(filePath, 'utf-8');
+        }
+        return '';
+    });
+
+    ipcMain.handle('save-as', async (event, text) => {
+        const result = await dialog.showSaveDialog({
+            defaultPath: 'mynote.txt',
+            filters: [{ name: 'Text Files', extensions: ['txt'] }]
+        });
+        if (result.canceled) {
+            return { success: false };
+        }
+        fs.writeFileSync(result.filePath, text, 'utf-8');
+        return { success: true, filepath: result.filePath };
+
+    });
+    ipcMain.handle('new-note', async (event) => {
+        const result = await dialog.showMessageBox({
+            type: 'Warning',
+            buttons: ['Discard Changes', 'Cancel'],
+            defaultId: 1,
+            title: 'Unsaved Changes',
+            message: 'you have unsaved changes.Start a new note anyway?'
+        });
+        return { confirmed: result.response === 0 };
+
+    });
+
+
     createWindow();
 
     app.on('activate', () => {
@@ -29,19 +71,4 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
-});
-
-// IPC Handlers
-ipcMain.handle('save-note', async (event, text) => {
-    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-    fs.writeFileSync(filePath, text, 'utf-8');
-    return { success: true };
-});
-
-ipcMain.handle('load-note', async () => {
-    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-    if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath, 'utf-8');
-    }
-    return '';
 });
