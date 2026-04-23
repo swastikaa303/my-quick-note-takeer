@@ -3,9 +3,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     const saveBtn = document.getElementById('save');
     const statusEl = document.getElementById('save_status');
     const saveAsBtn = document.getElementById('save-as');
-
+    const openFileBtn=document.getElementById('open-file');
+    const newNoteBtn=document.getElementById('new-note');
+    
     const savedNote = await window.electronAPI.loadNote();
     textarea.value = savedNote;
+    
 
     saveAsBtn.addEventListener('click', async () => {
         const result = await window.electronAPI.saveAs(textarea.value);
@@ -16,7 +19,45 @@ window.addEventListener('DOMContentLoaded', async () => {
         } else {
             statusEl.textContent = 'Save cancelled.';
         }
+        });
+    saveAsBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.saveAs(textarea.value);
+        if (result.success) {
+            lastsavedtext = textarea.value;
+            statusEl.textContent = `Saved to ${result.filepath}`;
+        } else {
+            statusEl.textContent = 'Save As cancelled.';
+        }
     });
+    newNoteBtn.addEventListener('click', async()=>{
+        if(textarea.value===lastSavedText){
+            textarea.value='';
+            lastSavedText='';
+             statusEl.textContent='New note started.';
+            return;
+        }
+        const result=await window.electronAPI.newNote();
+        if(result.confirmed){
+            textarea.value-'';
+            lastSavedText='';
+            statusEl.textContent='New note started.';
+        }else{
+            statusEl.textContent='New note cancelled.';
+        }
+         
+    });
+    openFileBtn.addEventListener('click',async()=>{
+        const result=await window.electronAPI.openFile();
+        if(result.success){
+            textarea.value=result.content;
+            lastSavedText=result.content;
+            currentFilePath=result.filePath;
+            statusEl.textContent='Opened:${result.filePath}';
+        }else{
+            statusEl.textContent='Open cancelled.';
+        }
+    });
+    
 
 
     async function autoSave() {

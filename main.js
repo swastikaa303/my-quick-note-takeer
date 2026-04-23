@@ -51,13 +51,28 @@ app.whenReady().then(() => {
     });
     ipcMain.handle('new-note', async (event) => {
         const result = await dialog.showMessageBox({
-            type: 'Warning',
+            type: 'warning',
             buttons: ['Discard Changes', 'Cancel'],
             defaultId: 1,
             title: 'Unsaved Changes',
             message: 'you have unsaved changes.Start a new note anyway?'
         });
         return { confirmed: result.response === 0 };
+
+    });
+    ipcMain.handle('open-file',async(event)=>{
+        const result=await dialog.showOpenDialog({
+            properties:['openFile'],
+            filters:[{name:'Text Files',extensions:['txt']}]
+
+
+        });
+        if (result.cancelled){
+            return{success:false};
+        }
+        const filePath=result.filePaths[0];
+        const content=fs.readFileSync(filePath,'utf-8');
+        return{success:true,content:true,content,filePath};
 
     });
 
