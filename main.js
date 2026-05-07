@@ -1,13 +1,16 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-
+const { app, BrowserWindow, Menu, ipcMain, dialog, Main, Tray } = require('electron');
+app.commandLine.appendSwitch('disable-http-cache');
 app.disableHardwareAcceleration();
-
 const path = require('node:path');
 const fs = require('node:fs');
-const { type } = require('node:os');
+const notesFilePath = path.join(app.getPath('userData'), 'notes.json');
+//New : system tray (which helps to create the tray  bar in the bottom of the se)
+
+let tray = null;
+let win = null;
 
 function createWindow() {
-    const win = new BrowserWindow({
+    win = new BrowserWindow({
         width: 900,
         height: 600,
         webPreferences: {
@@ -18,124 +21,267 @@ function createWindow() {
     });
 
     win.loadFile('index.html');
+
+    // Window close event
+    win.on('close', (event) => {
+        event.preventDefault();
+        win.hide();
+    });
 }
 
 app.whenReady().then(() => {
     createWindow();
 
-const menuTemplate =[
-    {
-        label:'File',
-        submenu:[
-            {
-                label:'New Note',
-                accelerator:'CmdOrCtrl+N',
-                click:()=>{
-                    BrowserWindow.getFocusedWindow().webContents.send('menu-new-note');
-                }
-            },
-            {
-                label:'Open File',
-                accelerator:'CmdOrCtrl+O',
-                click:()=>{
-                    BrowserWindow.getFocusedWindow().webContents.send('menu-open-file');
-            }
-            },
-            {
-                label:'Save',
-                accelerator:'CmdOrCtrl+S',
-                click:()=>{
-                    BrowserWindow.getFocusedWindow().webContents.send('menu-save');
-                }
-            },
-            {
-                label:'Save As',
-                accelerator:'CmdOrCtrl+Shift+S',
-                click:()=>{
-                    BrowserWindow.getFocusedWindow().webContents.send('menu-save-as');
-                }
-            },
-            {type:'separator'},
-            {
-                label:'Quit',
-                accelerator:'CmdOrCtrl+Q',
-                click:()=>app.quit()
-            }
-        ]
+    try {
+        tray = new Tray(path.join(__dirname, 'icon.png'));
+    } catch (err) {
+        console.log('Tray icon not found, starting without tray');
+        return;
     }
+
+    const trayMenu = Menu.buildFromTemplate([
+        {
+            label: 'show app ',
+            click: () => {
+                BrowserWindow.getAllWindows()[0].show();
+            }
+        },
+        {
+            label: ' Quit',
+            click: () => app.quit()
+        }
+    ]);
+    tray.setToolTip('quick note taker');
+    tray.setContextMenu(trayMenu);
+
+    // Tray double-click event
+    tray.on('double-click', () => {
+        const mainWin = BrowserWindow.getAllWindows()[0];
+        if (mainWin && mainWin.isVisible()) {
+            mainWin.hide();
+        } else if (mainWin) {
+            mainWin.show();
+        }
+    });
+});
+
+
+const menuTemplate = [
+    {
+        label: 'File',
+        submenu: [
+            {
+                label: 'New Note',
+                accelerator: 'CmdOrCtrl+N',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-new-note');
+                }
+            },
+            {
+                label: 'Open File',
+                accelerator: 'CmdOrCtrl+O',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-open-file');
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Save',
+                accelerator: 'CmdOrCtrl+S',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-save');
+                }
+            },
+            {
+                label: 'Save As',
+                accelerator: 'CmdOrCtrl+Shift+S',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-save-as');
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Quit',
+                accelerator: 'CmdOrCtrl+Q',
+                click: () => app.quit()
+            }
+
+        ]
+    },
+
+    {
+        label: 'Edit',
+        submenu: [
+            {
+                label: 'Cut',
+                accelerator: 'CmdOrCtrl+X',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.cut();
+                }
+
+            },
+            {
+                label: 'Copy',
+                accelerator: 'CmdOrCtrl+C',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.copy();
+                },
+            },
+            {
+                label: 'Paste',
+                accelerator: 'CmdOrCtrl+V',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.paste();
+                }
+            },
+
+            {
+                label: 'Delete',
+                accelerator: 'Delete',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.delete();
+                }
+            },
+            { type: 'separator' },
+            {
+                label: 'Clear formatting',
+                accelerator: 'CmdOrCtrl+Shift+X',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-clear-formatting');
+                }
+            },
+            {
+                label: 'Search with google ',
+                accelerator: 'CmdOrCtrl+Shift+L',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.send('menu-search-google');
+
+                }
+            },
+            {
+                label: 'Select All',
+                accelerator: 'CmdOrCtrl+A',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    if (win) win.webContents.selectAll();
+                }
+            },
+
+
+
+
+        ]
+    },
 ];
-const menu=Menu.buildFromTemplate(template);
-Menu.setApplicationMenu(menu);
+function setApplicationMenu() {
+    const menu = Menu.buildFromTemplate(menuTemplate);
+    Menu.setApplicationMenu(menu);
+}
 
-
+app.whenReady().then(() => {
+    createWindow();
+    setApplicationMenu();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
-}); 
+});
 
-    app.on('window-all-closed', () => {
-        if (process.platform !== 'darwin') app.quit();
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit();
+});
+
+function readNotes() {
+    if (!fs.existsSync(notesFilePath)) {
+        return [];
+    }
+    const raw = fs.readFileSync(notesFilePath, 'utf-8');
+    return JSON.parse(raw || '[]');
+}
+
+function writeNotes(notes) {
+    fs.writeFileSync(notesFilePath, JSON.stringify(notes, null, 2), 'utf-8');
+}
+ipcMain.handle('save-note', async (event, text) => {
+    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
+    fs.writeFileSync(filePath, text, 'utf-8');
+    return { success: true, filePath };
+});
+
+ipcMain.handle('load-note', async () => {
+    const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
+    if (fs.existsSync(filePath)) {
+        return fs.readFileSync(filePath, 'utf-8');
+    }
+    return '';
+});
+
+ipcMain.handle('save-as', async (event, text) => {
+    const result = await dialog.showSaveDialog({
+        defaultPath: 'mynote.txt',
+        filters: [{ name: 'Text Files', extensions: ['txt'] }]
     });
 
+    if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+    }
 
-    // IPC Handlers
-    ipcMain.handle('save-note', async (event, text) => {
-        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-        fs.writeFileSync(filePath, text, 'utf-8');
-        return { success: true };
+    fs.writeFileSync(result.filePath, text, 'utf-8');
+    return { success: true, filePath: result.filePath };
+});
+
+ipcMain.handle('open-file', async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [{ name: 'Text Files', extensions: ['txt', 'md'] }]
     });
 
-    ipcMain.handle('load-note', async () => {
-        const filePath = path.join(app.getPath('documents'), 'quicknote.txt');
-        if (fs.existsSync(filePath)) {
-            return fs.readFileSync(filePath, 'utf-8');
-        }
-        return '';
-    });
+    if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
+        return { success: false, canceled: true };
+    }
 
-    ipcMain.handle('save-as', async (event, text) => {
-        const result = await dialog.showSaveDialog({
-            defaultPath: 'mynote.txt',
-            filters: [{ name: 'Text Files', extensions: ['txt'] }]
-        });
-        if (result.canceled) {
-            return { success: false };
-        }
-        fs.writeFileSync(result.filePath, text, 'utf-8');
-        return { success: true, filepath: result.filePath };
+    const filePath = result.filePaths[0];
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return { success: true, filePath, content };
+});
 
-    });
-    ipcMain.handle('smart-save', async (event, text, filePath) => {
-        const targetPath = filePath || path.join(app.getPath('documents'), 'quicknote.txt');
-        fs.writeFileSync(targetPath, text, 'utf-8');
-        return { success: true, filepath: targetPath };
-    });
+ipcMain.handle('new-note', async () => {
+    return { success: true };
+});
+// i=this ine helps to  get  the notes from the json file and send it to the renderer 
+ipcMain.handle('get-notes', async () => {
+    return readNotes();
 
-    ipcMain.handle('new-note', async (event) => {
-        const result = await dialog.showMessageBox({
-            type: 'warning',
-            buttons: ['Discard Changes', 'Cancel'],
-            defaultId: 1,
-            title: 'Unsaved Changes',
-            message: 'you have unsaved changes.Start a new note anyway?'
-        });
-        return { confirmed: result.response === 0 };
+});
+// this lines of code helps to delete the notes from the json file and filtered the note
+ipcMain.handle('delete-note', async (event, id) => {
+    const notes = readNotes();
+    const filtered = notes.filter(n => n.id !== id);
+    writeNotes(filtered);
+    return { success: true };
+});
 
-    });
-    ipcMain.handle('open-file',async(event)=>{
-        const result=await dialog.showOpenDialog({
-            properties:['openFile'],
-            filters:[{name:'Text Files',extensions:['txt']}]
+ipcMain.handle('save-note-json', async (event, note) => {
+    const now = new Date().toISOString();
+    const notes = readNotes();
+    const index = notes.findIndex(n => n.id === note.id);
 
+    if (index === -1) {
+        notes.push({ ...note, createdAt: now, updatedAt: now });
+    } else {
+        notes[index] = { ...notes[index], ...note, updatedAt: now };
+    }
 
-        });
-        if (result.cancelled){
-            return{success:false};
-        }
-        const filePath=result.filePaths[0];
-        const content=fs.readFileSync(filePath,'utf-8');
-        return{success:true,content:true,content,filePath};
-
-    });
-
+    writeNotes(notes);
+    return { success: true };
+});
