@@ -81,11 +81,25 @@ window.addEventListener('DOMContentLoaded', async () => {
     // Manual save
     saveBtn.addEventListener('click', async () => {
         try {
-            await window.electronAPI.saveNote(textarea.value);
-            alert('Note saved successfully!');
+            const result =await window.electronAPI.smartSave(textarea.value, currentFilePath);
+            lastSavedText=textarea.value;
+            currentFilePath=result.filepath;
+            statusEl.textContent = `Saved to ${result.filepath}`;
         } catch (err) {
-            console.error('Manual save failed:', err);
+            console.error('save failed:', err);
+            statusEl.textContent = 'save failed..';
         }
     });
-
+    window.electronAPI.onMenuAction('menu-new-note',()=>{
+        newNoteBtn.click();
+    });
+    window.electronAPI.onMenuAction('menu-open-file',()=>{
+        openFileBtn.click();
+    });
+    window.electronAPI.onMenuAction('menu-save',()=>{
+        saveBtn.click();
+    });
+    window.electronAPI.onMenuAction('menu-save-as',()=>{
+        saveAsBtn.click();
+    });
 });
