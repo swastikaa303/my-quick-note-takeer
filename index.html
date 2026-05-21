@@ -1,66 +1,219 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
-    <head>
-        <meta charset ="UTF-8">
-        <title> QUICK NOTE TAKER</title>
-        <style>
-            body {
-                font-family: system-ui;
-                padding: 20px;
-                background: #00abfa;
+<head>
+    <meta charset="UTF-8">
+    <title>QUICK NOTE TAKER</title>
 
-            }
-            textarea{
-                width: 95%;
-                height:60vh;
-                font-size: 18px;
-                padding :15px;
-                
-            }
-            button {
-                padding: 12px  30px ;
-                font-size: 18px;
-                background: #594175;
-                color: rgb(255, 247, 247);
-                border: none;
-                cursor:pointer;
-            }
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-            .celebration {
-                position: fixed;
-                top: 15%;
-                left: 50%;
-                transform: translateX(-50%) scale(0.8);
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid #ffcd3c;
-                border-radius: 12px;
-                padding: 16px 24px;
-                font-size: 20px;
-                color: #333;
-                z-index: 9999;
-                opacity: 0;
-                pointer-events: none;
-                animation: pop 0.5s ease forwards;
-            }
+        body {
+            font-family: system-ui;
+            background: #ffcd3c;
+            height: 100vh;
+        }
 
-            .celebration.show {
-                opacity: 1;
-                transform: translateX(-50%) scale(1);
-                animation: pop 0.5s ease forwards;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>Quick Note Taker </h1>
-        <textarea id="note" placeholder="Start typing your note ..."></textarea>
-        <br><br>
-        <button id="new-note">🆕 New Note</button>
-        <button id="open-file">📂 Open File</button>
-        <button id="save">💾 Save Note</button>
-        <button id="save-as">🗃️ Save As</button>
-        <p id="save_status" style="color: gray; font-size: 14px;"></p>
-        <div id="starContainer"></div>
-        <div id="celebration" class="celebration" aria-live="assertive" role="status"></div>
-        <script src="renderer.js"></script>
-    </body>
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+
+        #sidebar {
+            width: 220px;
+            background: #2b2b2b;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            gap: 8px;
+        }
+
+        #note-list {
+            flex: 1;
+            overflow-y: auto;
+            display:flex;
+            flex-direction:column;
+            padding:10px;
+            gap:8px;
+        }
+
+        #editor {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap:10px;
+        }
+
+        #note-title {
+            padding: 8px;
+            font-size: 18px;
+            border:1 px solid #ccc;
+            border-radius:6px;
+        }
+
+        textarea {
+            flex:1;
+            font-size:16px;
+            padding:12px;
+            resize:none;
+            border:1px solid #ccc;
+            border-radius:6px;
+        }
+
+        #toolbar {
+            display: flex;
+            gap: 8px;
+        }
+
+       button {
+        padding: 8px 12px;
+        font-size: 14px;
+        background: #316357;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 8px;
+
+}
+
+button:hover { background:#3d7a6b; }
+
+#new-note { width: 100%; margin-bottom: 6px; }
+
+.note-item {
+    background: #3a3a3a;
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+
+}
+.note-item:hover { background: #4a4a4a; }
+
+.note-item.active { background: #316357; }
+
+.note-item-title {
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.note-item-date { font-size: 11px; color:
+
+#aaa; margin-top: 3px; }
+
+.note-item-delete {
+    background: transparent;
+    color: #ff6b6b;
+    border: none;
+    font-size: 12px;
+    float: right;
+    padding: 0;
+    cursor: pointer;
+}
+
+#save_status { font-size: 13px; color: Igray; }
+
+        .celebration {
+            position: fixed;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #ffcd3c;
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 20px;
+            color: #333;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            animation: pop 0.5s ease forwards;
+        }
+
+        .celebration.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+            animation: pop 0.5s ease forwards;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <button id="new-note">🆕 New Note</button>
+            <div id="note-list"></div>
+        </div>
+
+        <!-- Editor -->
+        <div id="editor">
+            <h1>Quick Note Taker</h1>
+            <br>
+            <input type="text" id="note-title" placeholder="Note title...">
+            <textarea id="note" placeholder="Start typing your note ..."></textarea>
+            <div id="toolbar">
+                <button id="open-file">📂 Open File</button>
+                <button id="save">💾 Save Note</button>
+                <button id="save-as">🗃️ Save As</button>
+                <button id="deleteBtn" style="background:#f44336;">Delete All</button>
+            </div>
+
+            <p id="save_status" style="color: gray; font-size: 14px; margin-top: 10px;"></p>
+
+            <div id="starContainer"></div>
+            <div id="celebration" class="celebration" aria-live="assertive" role="status"></div>
+        </div>
+
+    </div>
+
+    <script src="renderer.js"></script>
+
+</body>
 </html>
+
+
+button {
+
+padding: 8px 12px;
+
+font-size: 14px;
+
+background: #316357;
+
+color: white;
+
+border: none;
+
+cursor: pointer;
+
+border-radius: 8px;
+
+}
+
+button:hover { background:
+
+#3d7a6b; }
+
+#new-note { width: 100%; margin-bottom: 6px; }
+
+.note-item {
+
+background: #3a3a3a;
+
+border-radius: 6px;
+
+padding: 8px;
+
+cursor: pointer;
+
+}

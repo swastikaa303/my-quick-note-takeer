@@ -5,6 +5,7 @@
         const saveBtn = document.getElementById('save');
         const saveAsBtn = document.getElementById('save-as');
         const openFileBtn = document.getElementById('open-file');
+        const deleteBtn=document.getElementById('deleteBtn');
         const newNoteBtn = document.getElementById('new-note');
         const statusEl = document.getElementById('save_status');
         const celebration = document.getElementById('celebration');
@@ -89,6 +90,20 @@
                 statusEl.textContent = 'New note started';
             } else {
                 statusEl.textContent = 'New note cancelled';
+            }
+        });
+
+        deleteBtn.addEventListener('click',async()=>{
+            if(confirm('Really delete All notes?This cannot be undone!')){
+                try{
+                    await window.electronAPI.deleteNote();
+                    textarea.value='';
+                    lastSavedText='';
+                    statusE1.textContent='All notes deleted!';
+                    statusE1.style.color='red';
+                }catch(err){
+                    alert('Delete failed!');
+                }
             }
         });
 
