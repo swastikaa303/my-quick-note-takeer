@@ -1,219 +1,352 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>QUICK NOTE TAKER</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note It, down</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        /* =========================================
+           CSS VARIABLES (For perfect Light/Dark Mode)
+           ========================================= */
+        :root {
+            --bg-app: #f3f4f6;
+            --bg-panel: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-color: #9d2a8e;
+            --accent-hover: #21867a;
+            --btn-text: #ffffff;
+            --danger-color: #ef4444;
+            --danger-hover: #266fdc;
+            --item-hover: #f9fafb;
+            --item-active: #e6f7f5;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
+        body.dark-mode {
+            --bg-app: #111827;
+            --bg-panel: #1f2937;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --accent-color: #9d2a8e;
+            --accent-hover: #0ea5e9;
+            --item-hover: #374151;
+            --item-active: #1e3a8a;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+
+        /* =========================================
+           GLOBAL STYLES
+           ========================================= */
         body {
-            font-family: system-ui;
-            background: #ffcd3c;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            box-sizing: border-box;
             height: 100vh;
-        }
-
-        #app {
-            display: flex;
-            height: 100vh;
-        }
-
-        #sidebar {
-            width: 220px;
-            background: #2b2b2b;
-            color: white;
             display: flex;
             flex-direction: column;
-            padding: 10px;
-            gap: 8px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            overflow: hidden;
+            /* Prevents whole page from scrolling */
+        }
+
+        /* =========================================
+           SIDEBAR
+           ========================================= */
+        #sidebar {
+            width: 280px;
+            background: var(--bg-panel);
+            padding: 20px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #sidebar h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
         }
 
         #note-list {
             flex: 1;
             overflow-y: auto;
-            display:flex;
-            flex-direction:column;
-            padding:10px;
-            gap:8px;
+            padding-right: 5px;
         }
 
-        #editor {
+        /* Custom Scrollbar for Sidebar */
+        #note-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #note-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #note-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .note-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            position: relative;
+            background: var(--bg-panel);
+            transition: all 0.2s ease;
+        }
+
+        .note-item:hover {
+            background: var(--item-hover);
+            border-color: var(--border-color);
+        }
+
+        .note-item.active {
+            background: var(--item-active);
+            border-color: var(--accent-color);
+        }
+
+        .note-item strong {
+            display: block;
+            font-size: 15px;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            padding-right: 25px;
+            /* space for delete btn */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .note-item small {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            background: var(--danger-color) !important;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            /* Hide until hover */
+            transition: opacity 0.2s ease, background 0.2s ease;
+            padding: 0 !important;
+        }
+
+        .note-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: var(--danger-hover) !important;
+        }
+
+        /* =========================================
+           EDITOR AREA
+           ========================================= */
+        .editor {
             flex: 1;
-            padding: 15px;
             display: flex;
             flex-direction: column;
-            gap:10px;
+            background: var(--bg-panel);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            position: relative;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
         }
 
-        #note-title {
-            padding: 8px;
-            font-size: 18px;
-            border:1 px solid #ccc;
-            border-radius:6px;
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .save-status {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+            font-style: italic;
+        }
+
+        .undo-redo-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .undo-redo-buttons button {
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .undo-redo-buttons button:hover {
+            background-color: var(--item-hover);
         }
 
         textarea {
-            flex:1;
-            font-size:16px;
-            padding:12px;
-            resize:none;
-            border:1px solid #ccc;
-            border-radius:6px;
+            flex: 1;
+            width: 100%;
+            font-size: 16px;
+            line-height: 1.6;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            outline: none;
+            resize: none;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
-        #toolbar {
+        textarea:focus {
+            border-color: var(--accent-color);
+        }
+
+        /* =========================================
+           TOOLBAR (Bottom Buttons)
+           ========================================= */
+        .toolbar {
             display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 500;
+            background: var(--accent-color);
+            color: var(--btn-text);
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
             gap: 8px;
         }
 
-       button {
-        padding: 8px 12px;
-        font-size: 14px;
-        background: #316357;
-        color: white;
-        border: none;
-        cursor: pointer;
-        border-radius: 8px;
-
-}
-
-button:hover { background:#3d7a6b; }
-
-#new-note { width: 100%; margin-bottom: 6px; }
-
-.note-item {
-    background: #3a3a3a;
-    border-radius: 6px;
-    padding: 8px;
-    cursor: pointer;
-
-}
-.note-item:hover { background: #4a4a4a; }
-
-.note-item.active { background: #316357; }
-
-.note-item-title {
-    font-size: 13px;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.note-item-date { font-size: 11px; color:
-
-#aaa; margin-top: 3px; }
-
-.note-item-delete {
-    background: transparent;
-    color: #ff6b6b;
-    border: none;
-    font-size: 12px;
-    float: right;
-    padding: 0;
-    cursor: pointer;
-}
-
-#save_status { font-size: 13px; color: Igray; }
-
-        .celebration {
-            position: fixed;
-            top: 15%;
-            left: 50%;
-            transform: translateX(-50%) scale(0.8);
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid #ffcd3c;
-            border-radius: 12px;
-            padding: 16px 24px;
-            font-size: 20px;
-            color: #333;
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none;
-            animation: pop 0.5s ease forwards;
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
         }
 
-        .celebration.show {
-            opacity: 1;
-            transform: translateX(-50%) scale(1);
-            animation: pop 0.5s ease forwards;
+        /* Specific Button Styles */
+        #toggle-mode {
+            background: var(--bg-app);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            margin-left: auto;
+            /* Pushes Dark Mode btn to the right */
+        }
+
+        #toggle-mode:hover {
+            background: var(--item-hover);
         }
     </style>
 </head>
 
 <body>
 
-    <div id="app">
+    <h1>📝 Note it, down</h1>
 
-        <!-- Sidebar -->
+    <div class="container">
+
+        <!-- SIDEBAR -->
         <div id="sidebar">
-            <button id="new-note">🆕 New Note</button>
-            <div id="note-list"></div>
+            <h3>My Notes</h3>
+            <div id="note-list">
+                <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-top: 20px;">
+                    No saved notes.
+                </p>
+            </div>
         </div>
 
-        <!-- Editor -->
-        <div id="editor">
-            <h1>Quick Note Taker</h1>
-            <br>
-            <input type="text" id="note-title" placeholder="Note title...">
-            <textarea id="note" placeholder="Start typing your note ..."></textarea>
-            <div id="toolbar">
-                <button id="open-file">📂 Open File</button>
-                <button id="save">💾 Save Note</button>
-                <button id="save-as">🗃️ Save As</button>
-                <button id="deleteBtn" style="background:#f44336;">Delete All</button>
+        <!-- EDITOR AREA -->
+        <div class="editor">
+
+            <!-- Editor Top Header (Status + Undo/Redo) -->
+            <div class="editor-header">
+                <p id="save-status" class="save-status">Ready to type...</p>
+
+                <div class="undo-redo-buttons">
+                    <button id="undo" title="Undo (Ctrl+Z)">↩️</button>
+                    <button id="redo" title="Redo (Ctrl+Y)">↪️</button>
+                </div>
             </div>
 
-            <p id="save_status" style="color: gray; font-size: 14px; margin-top: 10px;"></p>
+            <!-- Text Area -->
+            <textarea id="note" placeholder="Start typing your beautiful note here..."></textarea>
 
-            <div id="starContainer"></div>
-            <div id="celebration" class="celebration" aria-live="assertive" role="status"></div>
+            <!-- Main Actions Toolbar -->
+            <div class="toolbar">
+                <button id="new-note">🆕 New Note</button>
+                <button id="save">💾 Save</button>
+                <button id="save-as">📂 Save As...</button>
+                <button id="open-file">📁 Open File</button>
+
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button id="font-dec" title="Decrease font size">A-</button>
+                    <button id="font-inc" title="Increase font size">A+</button>
+                    <button id="toggle-mode">🌓 Toggle Theme</button>
+                </div>
+            </div>
+
         </div>
-
     </div>
 
     <script src="renderer.js"></script>
-
 </body>
+
 </html>
-
-
-button {
-
-padding: 8px 12px;
-
-font-size: 14px;
-
-background: #316357;
-
-color: white;
-
-border: none;
-
-cursor: pointer;
-
-border-radius: 8px;
-
-}
-
-button:hover { background:
-
-#3d7a6b; }
-
-#new-note { width: 100%; margin-bottom: 6px; }
-
-.note-item {
-
-background: #3a3a3a;
-
-border-radius: 6px;
-
-padding: 8px;
-
-cursor: pointer;
-
-}
